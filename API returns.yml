@@ -1,0 +1,228 @@
+#API returns
+swagger: '2.0'
+#host:
+info:
+  title: API Возвраты товаров баллами
+  version: 0.0.1
+schemes:
+  - https
+basePath: /api/v1
+produces:
+  - application/json
+consumes:
+  - application/json
+paths:
+  /api/v1/returns {channel}:
+    get:
+      summary: Проверка доступности возвратов
+      parameters:
+        - name: channel
+          in: path
+          required: true
+          type: integer
+          format: int32
+          description: Идентификатор канала (МП)
+        - name: cardID 
+          in: body
+          required: true
+          schema:
+            type: string
+            #pattern: 
+            #maxlength
+          description: Уникальный номер карты
+      tags:
+        - returns
+      responses:
+        default:
+           description: Unexpected error
+        '200':
+          description: Канал МП доступен для возвратов
+        '400':
+          description: |
+            'Timeout выполнения запроса'
+              code: 4001
+            'Некорректный запрос'
+              code: 4002  
+        '403': 
+          description: |
+            'Возвраты недоступны для ТС5'
+              code: 4031
+            'Возвраты недоступны для МП'
+              code: 4032  
+            'Возвраты недоступны для карты {cardID}'
+              code: 4033 
+        '404':
+          description: ({cardID}) не найден 
+        '503':
+          description: Сервис недоступен
+
+  /api/v1/returns/return:
+    post:
+      summary: Проверка доступности возвратов для Магазина, транзакции и товарам
+      parameters:
+        - name: return
+          in: body
+          required: true
+          schema:
+              $ref: '#/definitions/Return'
+      tags: 
+        - returns
+      responses:
+        default:
+           description: Unexpected error
+        '200':
+          description: |
+            'По {transactionID} доступен возврат'
+              code: 2001
+            'По карте {cardID} доступен лимит возврата на сумму {card_limit}'
+              code: 2002
+            'По магазину {sap_code} доступен лимит {store_limit}'
+              code: 2003
+            'Статус возврата для {plu} = {product_return_status}' #не знаю как реализовано, предлагаю 0 - Недоступен возврат, 1 доступен полный, 2 - доступен частичный(н-р весовой товар)    
+        '400':
+          description: |
+            'Timeout выполнения запроса'
+              code: 4001
+            'Некорректный запрос'
+              code: 4002     
+        '403': 
+          description: |
+            'Возвраты недоступны для ТС5'
+              code: 4031
+            'Возвраты недоступны для МП'
+              code: 4032  
+            'Возвраты недоступны для карты {cardID}'
+              code: 4033   
+        '404':
+          description: |
+            'Не найдена транзакция {transactionID}'
+              code: 4041
+            'Не найден код магазина {sap_code}'
+              code: 4042
+            'Не найден товар {plu}'  
+              code: 4043 
+        '415':
+          description: 
+            'Unsupported Media Type'
+        '429':
+          description:
+            'Too Many Requests'          
+        '503':
+          description: Сервис недоступен
+                    
+  /api/v1/returns/ticket:  
+    post:
+      summary: Отправка данных для возврата
+      parameters:
+        - name: ticketReturn
+          in: body
+          required: true
+          schema:
+            $ref: '#/definitions/ticketReturn'
+      responses:
+        default:
+           description: Unexpected error
+        '200':
+          description: 'Все хорошо'   
+        '415':
+          description: 
+            'Unsupported Media Type'
+        '429':
+          description:
+            'Too Many Requests'           
+        
+
+definitions:
+
+  Return:
+    type: object
+    required:
+      - transactionID # Также нужна дата
+      - cardID
+      - sap_code
+    properties:
+      transactionID:
+        description: Идентификатор транзакции #Для проверки доступности возвратов по чеку, с учетом даты
+        type: string
+        #maxLength: 0
+        #pattern: 
+      cardID:
+        description: Идентификатор карты #Для проверки и получения лимитов по Пользователю
+        type: string
+        #maxLength: 0
+        #pattern: 
+      sap_code:
+        description: Идентификатор магазина #Для проверки и получения лимитов по магазину
+        type: string
+        #maxLength: 0
+        #pattern: 
+      plu:
+        description: Код товара #Для проверки принадлежности к возвратной категории  
+        type: integer
+        # minLength:
+        # maxLength: 
+        # format:    
+
+  ticketReturn:
+      type: object
+      required:
+          - transactionID
+          - cardID
+          - sap_code
+          - goods
+      properties:
+          transactionID: 
+            description: Идентификатор транзакции #Для проверки доступности возвратов по чеку, с учетом даты
+            type: string
+            #maxLength: 0
+            #pattern: 
+          cardID: 
+            description: Идентификатор карты #Для проверки и получения лимитов по Пользователю
+            type: string
+            #maxLength: 0
+            #pattern: 
+          sap_code:
+            description: Идентификатор магазина #Для проверки и получения лимитов по магазину
+            type: string
+            #maxLength: 0
+            #pattern: 
+          goods: #список товаров на возврат
+            type: array
+           # maxLength: 0
+            items:
+                $ref: '#/definitions/returnGoods'
+                
+  returnGoods:
+    type: object
+    required:
+      - plu
+      - count
+      - price
+      - url_photo
+      - reasonID 
+    properties:
+      plu:
+        description: идентификатор товара
+        type: string
+      count:
+        description: Количество товара на возврат
+        type: integer
+        format: int32
+      price:
+        type: integer
+        format: int32
+      url_photo:
+        description: Адрес к изображению (url)
+        type: string
+        # minLength:
+        # maxLength: 
+        # pattern:
+      reasonID:
+        description: Идентификатор причины возврата
+        type: string
+        # minLength:
+        # maxLength: 
+        # pattern:
+
+#securityDefinitions:                    
+          
