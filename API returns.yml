@@ -1,7 +1,7 @@
 #API returns
 swagger: '2.0'
 #host:
-info:
+info:test
   title: API Возвраты товаров баллами
   version: 0.0.1
 schemes:
