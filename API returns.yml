@@ -12,7 +12,7 @@ produces:
 consumes:
   - application/json
 paths:
-  /api/v1/returns {channel}:
+  /api/v1/returns {channel}, {card_id}:
     get:
       summary: Проверка доступности возвратов
       parameters:
@@ -21,38 +21,31 @@ paths:
           required: true
           type: integer
           format: int32
-          description: Идентификатор канала (МП)
-        - name: cardID 
-          in: body
+          description: Идентификатор канала (МП) #Для проверки доступности канала
+        - name: card_id 
+          in: path
           required: true
-          schema:
-            type: string
-            #pattern: 
-            #maxlength
-          description: Уникальный номер карты
+          type: string
+          description: Уникальный номер карты #Для проверки наличия пользователя в черном списке, можно убрать в другой запрос
       tags:
         - returns
       responses:
         default:
-           description: Unexpected error
+           description: Unexpected error #Нужно ли отлавливать такие ошибки?
         '200':
           description: Канал МП доступен для возвратов
-        '400':
-          description: |
-            'Timeout выполнения запроса'
-              code: 4001
-            'Некорректный запрос'
-              code: 4002  
         '403': 
           description: |
             'Возвраты недоступны для ТС5'
               code: 4031
             'Возвраты недоступны для МП'
               code: 4032  
-            'Возвраты недоступны для карты {cardID}'
+            'Возвраты недоступны для карты {card_id}'
               code: 4033 
         '404':
-          description: ({cardID}) не найден 
+          description: '({card_id}) не найден'
+        '422':
+          description: 'Bad Request/Unprocessable Entity'   
         '503':
           description: Сервис недоступен
 
@@ -64,49 +57,34 @@ paths:
           in: body
           required: true
           schema:
-              $ref: '#/definitions/Return'
+              $ref: '#/definitions/return'
       tags: 
         - returns
       responses:
-        default:
-           description: Unexpected error
         '200':
-          description: |
-            'По {transactionID} доступен возврат'
-              code: 2001
-            'По карте {cardID} доступен лимит возврата на сумму {card_limit}'
-              code: 2002
-            'По магазину {sap_code} доступен лимит {store_limit}'
-              code: 2003
-            'Статус возврата для {plu} = {product_return_status}' #не знаю как реализовано, предлагаю 0 - Недоступен возврат, 1 доступен полный, 2 - доступен частичный(н-р весовой товар)    
-        '400':
-          description: |
-            'Timeout выполнения запроса'
-              code: 4001
-            'Некорректный запрос'
-              code: 4002     
+          description: 'Возврат доступен'
+          schema:
+            $ref: '#/definitions/return_check'    
         '403': 
           description: |
             'Возвраты недоступны для ТС5'
               code: 4031
             'Возвраты недоступны для МП'
               code: 4032  
-            'Возвраты недоступны для карты {cardID}'
+            'Возвраты недоступны для карты {card_id}'
               code: 4033   
         '404':
-          description: |
-            'Не найдена транзакция {transactionID}'
-              code: 4041
-            'Не найден код магазина {sap_code}'
-              code: 4042
-            'Не найден товар {plu}'  
-              code: 4043 
+          description: 'Не найден один из параметров запроса' 
+          schema:
+            $ref: '#/definitions/return_check'    
         '415':
           description: 
-            'Unsupported Media Type'
+            'Unsupported Media Type' #Нужно ли отлавливать такие ошибки?
+        '422':
+          description: 'Bad Request/Unprocessable Entity'      
         '429':
           description:
-            'Too Many Requests'          
+            'Too Many Requests'          #Нужно ли отлавливать такие ошибки?
         '503':
           description: Сервис недоступен
                     
@@ -114,16 +92,16 @@ paths:
     post:
       summary: Отправка данных для возврата
       parameters:
-        - name: ticketReturn
+        - name: ticket_return
           in: body
           required: true
           schema:
-            $ref: '#/definitions/ticketReturn'
+            $ref: '#/definitions/ticket_return'
       responses:
         default:
            description: Unexpected error
         '200':
-          description: 'Все хорошо'   
+          description: 'Данные для возврата отправлены'   
         '415':
           description: 
             'Unsupported Media Type'
@@ -134,19 +112,19 @@ paths:
 
 definitions:
 
-  Return:
+  return:
     type: object
     required:
-      - transactionID # Также нужна дата
-      - cardID
+      - transaction_id # Также нужна дата
+      - card_id
       - sap_code
     properties:
-      transactionID:
+      transaction_id:
         description: Идентификатор транзакции #Для проверки доступности возвратов по чеку, с учетом даты
         type: string
         #maxLength: 0
         #pattern: 
-      cardID:
+      card_id:
         description: Идентификатор карты #Для проверки и получения лимитов по Пользователю
         type: string
         #maxLength: 0
@@ -163,20 +141,20 @@ definitions:
         # maxLength: 
         # format:    
 
-  ticketReturn:
+  ticket_return:
       type: object
       required:
-          - transactionID
-          - cardID
+          - transaction_id
+          - card_id
           - sap_code
           - goods
       properties:
-          transactionID: 
+          transaction_id: 
             description: Идентификатор транзакции #Для проверки доступности возвратов по чеку, с учетом даты
             type: string
             #maxLength: 0
             #pattern: 
-          cardID: 
+          card_id: 
             description: Идентификатор карты #Для проверки и получения лимитов по Пользователю
             type: string
             #maxLength: 0
@@ -190,16 +168,16 @@ definitions:
             type: array
            # maxLength: 0
             items:
-                $ref: '#/definitions/returnGoods'
+                $ref: '#/definitions/return_goods'
                 
-  returnGoods:
+  return_goods:
     type: object
     required:
       - plu
       - count
       - price
       - url_photo
-      - reasonID 
+      - reason_id 
     properties:
       plu:
         description: идентификатор товара
@@ -211,18 +189,63 @@ definitions:
       price:
         type: integer
         format: int32
-      url_photo:
+      url_photo: #Большой вопрос - как и где хранить фото
         description: Адрес к изображению (url)
         type: string
         # minLength:
         # maxLength: 
         # pattern:
-      reasonID:
+      reason_id:
         description: Идентификатор причины возврата
-        type: string
-        # minLength:
-        # maxLength: 
-        # pattern:
+        items:
+          $ref: 'return_reason'
 
-#securityDefinitions:                    
+      return_reason:
+        type: object
+        required:
+          - reason_id
+        properties:  
+          reason_id:    
+            description: Идентификатор причины возврата
+            type: string
+          reason_text:
+            description: 'Текст причины возврата'
+            type: string
+            format: byte  
+
+  return_check:
+    type: object
+    properties:
+      transaction_check:
+        description: 'По {transaction_id} доступен возврат'
+        type: string
+      store_check:
+        description: 'По магазину {sap_code} доступен лимит {store_limit}' 
+        type: string
+      card_check:  
+        description: 'По карте {card_id} доступен лимит возврата на сумму {card_limit}'
+        type: string
+      goods_check: 
+        description: 'Статус возврата для {plu} = {product_return_status}'
+        type: array
+        items:
+          $ref: '#/definitions/goods_check'
+
+  goods_check:
+    type: object
+    required:
+      - plu
+      - product_return_status
+    properties:
+      plu:
+        description: идентификатор товара
+        type: string
+      product_return_status:
+        description: Соответствие возвратной категории   #не знаю как реализовано, предлагаю 0 - Недоступен возврат, 1 доступен полный, 2 - доступен частичный(н-р весовой товар)
+        type: integer
+        format: int32
+             
+                
+#securityDefinitions:   
+...                 
           
