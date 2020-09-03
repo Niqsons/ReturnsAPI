@@ -49,12 +49,17 @@ paths:
         '503':
           description: Сервис недоступен
 
-  /api/v1/returns/return:
-    post:
-      summary: Проверка доступности возвратов для Магазина, транзакции и товарам
+  /api/v1/returns/return {channel}:
+    get:
+      summary: Проверка доступности возвратов и получение лимитов
       parameters:
+        - name: channel
+          in: path
+          required: true
+          type: integer
+          format: int32
         - name: return
-          in: body
+          in: query
           required: true
           schema:
               $ref: '#/definitions/return'
