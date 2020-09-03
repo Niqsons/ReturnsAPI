@@ -58,11 +58,34 @@ paths:
           required: true
           type: integer
           format: int32
-        - name: return
+        - name: transaction_id
           in: query
           required: true
-          schema:
-              $ref: '#/definitions/return'
+          description: Идентификатор транзакции #Для проверки доступности возвратов по чеку, с учетом даты
+          type: string
+          #maxLength: 0
+          #pattern: 
+        - name: card_id
+          in: query
+          required: true
+          description: Идентификатор карты #Для проверки и получения лимитов по Пользователю
+          type: string
+          #maxLength: 0
+          #pattern:
+        - name: sap_code
+          in: query
+          required: true
+          description: Идентификатор магазина #Для проверки и получения лимитов по магазину
+          type: string
+          #maxLength: 0
+          #pattern: 
+        - name: plu
+          in: query
+          required: true
+          description: Код товара #Для проверки принадлежности к возвратной категории  
+          type: array
+          items:
+            type: string
       tags: 
         - returns
       responses:
@@ -116,36 +139,7 @@ paths:
         
 
 definitions:
-
-  return:
-    type: object
-    required:
-      - transaction_id # Также нужна дата
-      - card_id
-      - sap_code
-    properties:
-      transaction_id:
-        description: Идентификатор транзакции #Для проверки доступности возвратов по чеку, с учетом даты
-        type: string
-        #maxLength: 0
-        #pattern: 
-      card_id:
-        description: Идентификатор карты #Для проверки и получения лимитов по Пользователю
-        type: string
-        #maxLength: 0
-        #pattern: 
-      sap_code:
-        description: Идентификатор магазина #Для проверки и получения лимитов по магазину
-        type: string
-        #maxLength: 0
-        #pattern: 
-      plu:
-        description: Код товара #Для проверки принадлежности к возвратной категории  
-        type: integer
-        # minLength:
-        # maxLength: 
-        # format:    
-
+    
   ticket_return:
       type: object
       required:
