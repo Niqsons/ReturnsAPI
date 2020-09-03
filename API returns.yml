@@ -175,7 +175,7 @@ definitions:
     required:
       - plu
       - count
-      - price
+      - price #в случае возможности получения данных по транзакции - данный параметр не нужен.
       - url_photo
       - reason_id 
     properties:
