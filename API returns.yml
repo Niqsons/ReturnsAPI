@@ -83,9 +83,7 @@ paths:
           in: query
           required: true
           description: Код товара #Для проверки принадлежности к возвратной категории  
-          type: array
-          items:
-            type: string
+          type: string
       tags: 
         - returns
       responses:
@@ -120,16 +118,18 @@ paths:
     post:
       summary: Отправка данных для возврата
       parameters:
-        - name: ticket_return
+        - name: return_ticket
           in: body
           required: true
           schema:
-            $ref: '#/definitions/ticket_return'
+            $ref: '#/definitions/return_ticket'
       responses:
         default:
            description: Unexpected error
         '200':
           description: 'Данные для возврата отправлены'   
+          schema:
+            $ref: '#/definitions/return_score' #При отправке заявки на возврат - требуется получить количество баллов, которые возможно получить при возврате товара
         '415':
           description: 
             'Unsupported Media Type'
@@ -140,7 +140,7 @@ paths:
 
 definitions:
     
-  ticket_return:
+  return_ticket:
       type: object
       required:
           - transaction_id
@@ -163,54 +163,36 @@ definitions:
             type: string
             #maxLength: 0
             #pattern: 
-          goods: #список товаров на возврат
-            type: array
+          plu: #список товаров на возврат
+            type: string
            # maxLength: 0
-            items:
-                $ref: '#/definitions/return_goods'
-                
-  return_goods:
+          count:
+            description: Количество товара на возврат
+            type: integer
+            format: int32
+          url_photo: #Большой вопрос - как и где хранить фото
+            description: Адрес к изображению (url)
+            type: string
+          # minLength:
+          # maxLength: 
+          # pattern:
+          return_reason:
+            description: Идентификатор причины возврата
+          items:
+            $ref: 'return_reason'
+
+  return_reason:
     type: object
     required:
-      - plu
-      - count
-      - price #в случае возможности получения данных по транзакции - данный параметр не нужен.
-      - url_photo
-      - reason_id 
-    properties:
-      plu:
-        description: идентификатор товара
-        type: string
-      count:
-        description: Количество товара на возврат
-        type: integer
-        format: int32
-      price:
-        type: integer
-        format: int32
-      url_photo: #Большой вопрос - как и где хранить фото
-        description: Адрес к изображению (url)
-        type: string
-        # minLength:
-        # maxLength: 
-        # pattern:
-      reason_id:
+      - reason_id
+    properties:  
+      reason_id:    
         description: Идентификатор причины возврата
-        items:
-          $ref: 'return_reason'
-
-      return_reason:
-        type: object
-        required:
-          - reason_id
-        properties:  
-          reason_id:    
-            description: Идентификатор причины возврата
-            type: string
-          reason_text:
-            description: 'Текст причины возврата'
-            type: string
-            format: byte  
+        type: string
+      reason_text:
+        description: 'Текст причины возврата'
+        type: string
+        format: byte  
 
   return_check:
     type: object
@@ -224,26 +206,27 @@ definitions:
       card_check:  
         description: 'По карте {card_id} доступен лимит возврата на сумму {card_limit}'
         type: string
-      goods_check: 
+      plu: 
         description: 'Статус возврата для {plu} = {product_return_status}'
-        type: array
-        items:
-          $ref: '#/definitions/goods_check'
-
-  goods_check:
-    type: object
-    required:
-      - plu
-      - product_return_status
-    properties:
-      plu:
-        description: идентификатор товара
         type: string
       product_return_status:
         description: Соответствие возвратной категории   #не знаю как реализовано, предлагаю 0 - Недоступен возврат, 1 доступен полный, 2 - доступен частичный(н-р весовой товар)
         type: integer
         format: int32
-             
+
+  return_score:
+    type: object
+    properties: 
+      transaction_id:
+        description: 'Идентификатор транзакции, по которой была заявка на возврат'
+        type: string
+      plu:
+        description: 'Идентификатор товара'
+        type: string
+      score:
+        description: 'Возможное количество баллов за возврат'   
+        type: integer
+        format: int32          
                 
 #securityDefinitions:   
 ...                 
